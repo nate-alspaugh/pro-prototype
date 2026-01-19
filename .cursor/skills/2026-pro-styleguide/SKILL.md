@@ -1,19 +1,19 @@
 ---
 name: 2026-pro-styleguide
-description: This is a new rule
+description: Use this resource as a source of truth to for our style guide and rules for building our UI
 ---
 
 # Design System & UI Rules
 
 ## 1. Typography
 **Font Families:**
-- Primary (UI): `General Sans`
+- Primary (UI): `General Sans` (**Variable Font**)
 - Mono (Numbers/Data): `JetBrains Mono`
 
-**Font Weights:**
-- Regular/Book: 450
-- Medium/Semi: 530
-- Bold: 700 (standard bold for Mono)
+**Font Weights (Variable Axis):**
+- Regular/Book: 450 (Use specific value, do not round to 400)
+- Medium/Semi: 530 (Use specific value, do not round to 500)
+- Bold: 700 (Standard bold for Mono)
 
 **Line Height (Leading):**
 - **Single-line Content:** 100% (1.0)
@@ -59,8 +59,8 @@ description: This is a new rule
 ## 3. Colors & Tokens
 **Base Palette:**
 - `Base Gray`: #0C0D0D
-- `White Alpha`: 100%, 90%, 80%, 70%, 60%, 50%, 40%, 30%, 20%, 10%, 5%, 2.5%
-- `Black Alpha`: (Same steps as white)
+- `White Alpha`: 100%, 90%, 80%, 70%, 60%, 50%, 40%, 30%, 20%, 10%, 5%, 2.5%, 0%
+- `Black Alpha`: 100%, 90%, 80%, 70%, 60%, 50%, 40%, 30%, 20%, 10%, 5%, 2.5%, 0%
 
 **Semantic Surface Tokens:**
 - `surface-0`: Base Gray (#0C0D0D)
@@ -77,16 +77,58 @@ description: This is a new rule
 - `txt-secondary`: White 60%
 - `txt-tertiary`: White 40%
 
-## 4. Implementation Rules
+## 4. Component Specs
+
+### Button Primary (High Fidelity)
+- **Label:** `Base Gray` (#0C0D0D) | Weight: 450
+- **Background Fill:** Linear Gradient (Top -> Bottom): White 80% -> White 70%
+- **Outer Border:** `card-border` (White 10% -> White 5%)
+- **Inner Border (Highlight/Shadow):**
+  - *Must use absolute positioned pseudo-element or inset box-shadow.*
+  - Width: 0.5px
+  - Gradient (Top -> Bottom): [0%] White 100% -> [25%] Transparent -> [75%] Transparent -> [100%] Black 30%
+
+### Button Secondary (Glass/Ghost)
+- **Label:** `txt-secondary` (White 60%) | Weight: 450
+- **Background Fill:** Linear Gradient (Top -> Bottom): White 0% -> White 10%
+- **Outer Border:** `card-border` (White 10% -> White 5%)
+- **Inner Border (Ring):**
+  - Width: 0.5px
+  - Color: Black 20% (Solid inset shadow)
+
+### Table Small (Key/Value Data)
+- **Usage:** Inside cards for direct key/value pairs.
+- **Layout:**
+  - Row Padding: `8px` (py-2)
+  - Alignment: Flex Row, Justify Between, Items Center.
+- **Dividers:**
+  - Style: `card-border` (1px gradient).
+  - Placement: Between rows only (No border above first item, no border below last item).
+- **Typography - Key (Left):**
+  - Font: `General Sans`
+  - Size: `xs` (14px) *[Inferred from hierarchy]*
+  - Color: `txt-secondary`
+  - Weight: 450
+  - Line-Height: 100% (Single Line)
+- **Typography - Value (Right):**
+  - Font: `JetBrains Mono`
+  - Size: `s` (16px) (Matches `Number Label 3`)
+  - Color: `txt-primary`
+  - Weight: 700 (Bold)
+  - Line-Height: 100% (Single Line)
+
+## 5. Implementation Rules
 1. **Semantic Naming:** Always use semantic names (e.g., `txt-secondary`) instead of raw hex values.
 2. **Typography Logic:**
-   - Use `General Sans` for all UI text and `JetBrains Mono` strictly for numbers/data.
-   - **Line Height Rule:** Ignore element type (Title vs Paragraph).
-     - IF text is single-line: Use `leading-none` (100%).
-     - IF text wraps/is multi-line: Use `leading-relaxed` (150%).
-3. **Card Hierarchy & Styling:**
-   - **Depth Logic:**
-     - Use `card-bg-0` for the initial "Parent" or "Base" card layer.
-     - Use `card-bg-1` for any nested cards or grouped regions *inside* the parent card.
-   - **Borders:** Always use 1px width with the specified linear gradient.
-4. **Spacing:** Adhere strictly to the spacing scale; do not invent arbitrary values like 10px or 15px.
+   - **Variable Font Usage:** Use `font-weight: 450` and `font-weight: 530` explicitly.
+   - **Line Height Rule:** Ignore element type.
+     - Single-line: `leading-none` (100%).
+     - Multi-line: `leading-relaxed` (150%).
+3. **Card Hierarchy:**
+   - Use `card-bg-0` for Parent/Base layers.
+   - Use `card-bg-1` for Nested layers.
+4. **Button Construction:**
+   - **Primary:** Use `::before` pseudo-element for the gradient inner border (Top Shine/Bottom Shadow).
+   - **Secondary:** Use `box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.2)` for the inner border.
+5. **Table Logic:**
+   - For "Table Small", ensure borders are strictly *between* items (`divide-y` logic), never on the outer edges of the list container.

@@ -59,14 +59,14 @@ function TopPredictorsCard() {
             <div className="predictor-right">
               <h3 className="p-name">{predictor.name}</h3>
               <span className="p-firm">{predictor.firm}</span>
-              <div className="p-stats-grid">
-                <div className="p-stat-row">
+              <div className="data-list">
+                <div className="data-row">
                   <span>Smart score</span> <strong className={predictor.smartScoreColor}>{predictor.smartScore}</strong>
                 </div>
-                <div className="p-stat-row">
+                <div className="data-row">
                   <span>Sample size</span> <strong>{predictor.sampleSize}</strong>
                 </div>
-                <div className="p-stat-row">
+                <div className="data-row">
                   <span>Avg error</span> <strong>{predictor.avgError}</strong>
                 </div>
               </div>

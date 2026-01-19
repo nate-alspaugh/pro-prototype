@@ -1,3 +1,5 @@
+import React from 'react'
+
 function Sidebar() {
   return (
     <aside className="sidebar">
@@ -14,6 +16,4 @@ function Sidebar() {
       </div>
     </aside>
   )
-}
-
-export default Sidebar
+}export default Sidebar

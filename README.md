@@ -1,4 +1,4 @@
-# Command Palette Prototype
+# Pro Prototype
 
 A React-based financial dashboard prototype featuring an interactive command palette with WebGL shadow effects.
 

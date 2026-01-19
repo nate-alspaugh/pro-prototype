@@ -3,20 +3,60 @@ import { useCommandPalette } from '../hooks/useCommandPalette'
 import { useWebGLShadow } from '../hooks/useWebGLShadow'
 
 const items = [
-  { symbol: 'RBLX', company: 'ROBLOX CORP', change: '-0.35%', price: '$128.11' },
-  { symbol: 'AAPL', company: 'APPLE INC', change: '-0.35%', price: '$128.11' },
-  { symbol: 'MSFT', company: 'MICROSOFT CORP', change: '-0.35%', price: '$128.11' }
+  { type: 'stock', symbol: 'RBLX', company: 'ROBLOX CORP', change: '-0.35%', price: '$128.11' },
+  { type: 'stock', symbol: 'AAPL', company: 'APPLE INC', change: '-0.35%', price: '$128.11' },
+  { type: 'stock', symbol: 'MSFT', company: 'MICROSOFT CORP', change: '-0.35%', price: '$128.11' },
+  { type: 'action', id: 'view-dashboard', symbol: '⌂', company: 'Go to Dashboard', shortcut: 'G D' },
+  { type: 'action', id: 'view-catalogue', symbol: '⌘', company: 'View Component Catalogue', shortcut: 'G C' },
+  { type: 'action', id: 'component-analyst-consensus', symbol: '◒', company: 'Catalogue: Analyst Consensus', shortcut: 'G A' },
+  { type: 'action', id: 'component-rating-momentum', symbol: '◒', company: 'Catalogue: Rating Momentum', shortcut: 'G R' }
 ]
 
-function CommandPalette({ isOpen, onClose }) {
+// Default Designer Controls
+const DEFAULT_CONTROLS = {
+  leakIntensity: 0.23,
+  leakOpacity: 0.5,
+  leakLength: 160.0,
+  leakWideReach: 122.0,
+  verticalShift: 2.0,
+  auraIntensity: 0.65,
+  godRayIntensity: 0.06
+}
+
+function CommandPalette({ isOpen, onClose, setView }) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const overlayRef = useRef(null)
   const modalRef = useRef(null)
   const inputRef = useRef(null)
   const canvasRef = useRef(null)
 
-  useCommandPalette({ isOpen, onClose, selectedIndex, setSelectedIndex, inputRef, overlayRef, modalRef })
-  useWebGLShadow({ isOpen, modalRef, canvasRef, overlayRef })
+  const handleSelect = (index) => {
+    const item = items[index]
+    if (item.type === 'action') {
+      if (item.id.startsWith('component-')) {
+        const componentId = item.id.replace('component-', '')
+        setView(`catalogue:${componentId}`)
+      } else if (item.id === 'view-catalogue') {
+        setView('catalogue')
+      } else if (item.id === 'view-dashboard') {
+        setView('dashboard')
+      }
+      onClose()
+    }
+  }
+
+  useCommandPalette({ 
+    isOpen, 
+    onClose, 
+    selectedIndex, 
+    setSelectedIndex, 
+    inputRef, 
+    overlayRef, 
+    modalRef,
+    onSelect: handleSelect,
+    itemsCount: items.length
+  })
+  useWebGLShadow({ isOpen, modalRef, canvasRef, overlayRef, controls: DEFAULT_CONTROLS })
 
   return (
     <div 
@@ -30,14 +70,15 @@ function CommandPalette({ isOpen, onClose }) {
         }
       }}
     >
+      <canvas 
+        ref={canvasRef} 
+        id="cp-shadow-canvas" 
+        className="cp-shadow-canvas"
+        width="1"
+        height="1"
+      ></canvas>
+
       <div className="cp-wrapper">
-        <canvas 
-          ref={canvasRef} 
-          id="cp-shadow-canvas" 
-          className="cp-shadow-canvas"
-          width="1"
-          height="1"
-        ></canvas>
         {isOpen && (
           <div ref={modalRef} className="command-palette-modal" role="dialog" aria-modal="true">
             <div className="cp-header">
@@ -53,13 +94,14 @@ function CommandPalette({ isOpen, onClose }) {
             </div>
             
             <div className="cp-body">
-              <div className="cp-section-header">RECENT</div>
+              <div className="cp-section-header">RECENT & ACTIONS</div>
               <ul className="cp-list">
                 {items.map((item, index) => (
                   <li
                     key={index}
-                    className={`cp-item ${index === selectedIndex ? 'active' : ''}`}
+                    className={`cp-item ${index === selectedIndex ? 'active' : ''} ${item.type === 'action' ? 'cp-action-item' : ''}`}
                     onMouseEnter={() => setSelectedIndex(index)}
+                    onClick={() => handleSelect(index)}
                   >
                     <div className="cp-sheen"></div>
                     <div className="cp-item-left">
@@ -70,10 +112,14 @@ function CommandPalette({ isOpen, onClose }) {
                       </div>
                     </div>
                     <div className="cp-item-right">
-                      <div className="cp-price-info text-red">
-                        <span className="cp-change">▼ {item.change}</span>
-                        <span className="cp-price">{item.price}</span>
-                      </div>
+                      {item.type === 'stock' ? (
+                        <div className="cp-price-info text-red">
+                          <span className="cp-change">▼ {item.change}</span>
+                          <span className="cp-price">{item.price}</span>
+                        </div>
+                      ) : (
+                        <kbd className="cp-enter-hint">{item.shortcut || 'GO'}</kbd>
+                      )}
                       <kbd className="cp-enter-hint">ENTER</kbd>
                     </div>
                   </li>

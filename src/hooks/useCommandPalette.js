@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import anime from 'animejs'
 
-export function useCommandPalette({ isOpen, onClose, selectedIndex, setSelectedIndex, inputRef, overlayRef, modalRef }) {
+export function useCommandPalette({ isOpen, onClose, selectedIndex, setSelectedIndex, inputRef, overlayRef, modalRef, onSelect, itemsCount = 3 }) {
   useEffect(() => {
     if (!isOpen) return
 
@@ -10,10 +10,10 @@ export function useCommandPalette({ isOpen, onClose, selectedIndex, setSelectedI
         onClose()
       } else if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setSelectedIndex((prev) => (prev + 1) % 3)
+        setSelectedIndex((prev) => (prev + 1) % itemsCount)
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setSelectedIndex((prev) => (prev - 1 + 3) % 3)
+        setSelectedIndex((prev) => (prev - 1 + itemsCount) % itemsCount)
       } else if (e.key === 'Enter') {
         e.preventDefault()
         const item = modalRef.current?.querySelectorAll('.cp-item')[selectedIndex]
@@ -22,7 +22,10 @@ export function useCommandPalette({ isOpen, onClose, selectedIndex, setSelectedI
             targets: item, 
             scale: [1, 0.98, 1], 
             duration: 200, 
-            easing: 'easeInOutQuad' 
+            easing: 'easeInOutQuad',
+            complete: () => {
+              if (onSelect) onSelect(selectedIndex)
+            }
           })
         }
       }
@@ -30,7 +33,7 @@ export function useCommandPalette({ isOpen, onClose, selectedIndex, setSelectedI
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose, selectedIndex, setSelectedIndex, modalRef])
+  }, [isOpen, onClose, selectedIndex, setSelectedIndex, modalRef, onSelect, itemsCount])
 
   useEffect(() => {
     if (!isOpen || !overlayRef.current || !modalRef.current) return

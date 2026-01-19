@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
+import ComponentCatalogue from './components/ComponentCatalogue'
 import CommandPalette from './components/CommandPalette'
 import { useAnimeAnimations } from './hooks/useAnimeAnimations'
 import './styles.css'
 
 function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
+  const [currentView, setCurrentView] = useState('dashboard') // 'dashboard' or 'catalogue'
 
   // Initialize animations on mount
   useAnimeAnimations()
@@ -27,10 +29,20 @@ function App() {
   return (
     <div className="app-layout">
       <Sidebar />
-      <Dashboard />
+      <main className="main-content">
+        {currentView === 'dashboard' ? (
+          <Dashboard />
+        ) : (
+          <ComponentCatalogue 
+            initialComponentId={currentView.startsWith('catalogue:') ? currentView.split(':')[1] : null} 
+            onNavigate={(id) => setCurrentView(id ? `catalogue:${id}` : 'catalogue')}
+          />
+        )}
+      </main>
       <CommandPalette 
         isOpen={isCommandPaletteOpen} 
         onClose={() => setIsCommandPaletteOpen(false)}
+        setView={setCurrentView}
       />
     </div>
   )

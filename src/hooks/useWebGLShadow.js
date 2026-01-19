@@ -1,46 +1,48 @@
 import { useEffect, useRef } from 'react'
 
-export function useWebGLShadow({ isOpen, modalRef, canvasRef, overlayRef }) {
+export function useWebGLShadow({ isOpen, modalRef, canvasRef, overlayRef, controls = {} }) {
   const glRef = useRef(null)
   const programRef = useRef(null)
   const positionBufferRef = useRef(null)
   const renderRef = useRef(null)
+  const mousePosRef = useRef({ x: 0.5, y: 0.5 })
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      mousePosRef.current = {
+        x: e.clientX / window.innerWidth,
+        y: e.clientY / window.innerHeight
+      }
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) {
-      console.warn('WebGL Shadow: Canvas ref not available')
+    if (!canvas) return
+
+    let gl
+    try {
+      gl = canvas.getContext('webgl', { 
+        alpha: true, 
+        premultipliedAlpha: false,
+        antialias: false 
+      }) || canvas.getContext('experimental-webgl', { 
+        alpha: true, 
+        premultipliedAlpha: false 
+      })
+    } catch (e) {
+      console.error('WebGL Shadow: Failed to get context', e)
       return
     }
-
-    // Ensure canvas has proper attributes for WebGL
-    if (!canvas.getAttribute('width') || !canvas.getAttribute('height')) {
-      canvas.width = 1
-      canvas.height = 1
-    }
-
-    const gl = canvas.getContext('webgl', { 
-      alpha: true, 
-      premultipliedAlpha: false,
-      antialias: false 
-    }) || canvas.getContext('experimental-webgl', { 
-      alpha: true, 
-      premultipliedAlpha: false 
-    })
     
-    if (!gl) {
-      console.error('WebGL Shadow: WebGL not supported or context creation failed')
-      return
-    }
-
-    console.log('WebGL Shadow: Context created successfully')
+    if (!gl) return
     glRef.current = gl
 
-    // Vertex shader source
     const vertexShaderSource = `
       attribute vec2 a_position;
       varying vec2 v_uv;
-      
       void main() {
         gl_Position = vec4(a_position, 0.0, 1.0);
         v_uv = (a_position + 1.0) * 0.5;
@@ -48,174 +50,127 @@ export function useWebGLShadow({ isOpen, modalRef, canvasRef, overlayRef }) {
       }
     `
 
-    // Fragment shader source
     const fragmentShaderSource = `
       precision mediump float;
-      
       varying vec2 v_uv;
-      
       uniform vec2 u_resolution;
       uniform vec2 u_modalSize;
       uniform vec2 u_modalPos;
+      uniform vec2 u_mouse;
       uniform float u_devicePixelRatio;
       uniform float u_time;
-      
-      float gaussian(float dist, float sigma) {
-        if (sigma <= 0.0) return 0.0;
-        return exp(-(dist * dist) / (2.0 * sigma * sigma));
+
+      // Designer Controls
+      uniform float u_leakIntensity;
+      uniform float u_leakOpacity;
+      uniform float u_leakLength;
+      uniform float u_leakWideReach;
+      uniform float u_verticalShift;
+      uniform float u_auraIntensity;
+      uniform float u_godRayIntensity;
+
+      float roundedBoxSDF(vec2 p, vec2 center, vec2 halfSize, float radius) {
+        vec2 d = abs(p - center) - halfSize + vec2(radius);
+        return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - radius;
       }
-      
-      float smoothFalloff(float dist, float blurRadius) {
-        // Convert blur radius to sigma (standard deviation)
-        // For CSS box-shadow, sigma is typically blurRadius / 2
-        // We scale by device pixel ratio first, then convert to sigma
-        float scaledBlur = blurRadius * u_devicePixelRatio;
-        float sigma = scaledBlur / 1.2; // Much stronger blur for smoother falloff
-        
-        // Ensure minimum sigma for visible blur (minimum 30 pixels for much better blur)
-        sigma = max(sigma, 30.0);
-        
-        // Use a softer falloff curve
-        float g = gaussian(dist, sigma);
-        
-        // Apply additional softening for better blend
-        return g;
+
+      vec3 getPrismaticColor(float t) {
+        vec3 green  = vec3(100.0, 210.0, 160.0) / 255.0;
+        vec3 yellow = vec3(255.0, 245.0, 110.0) / 255.0; 
+        // More vibrant red to ensure it pops at lower intensities
+        vec3 red    = vec3(255.0, 70.0, 70.0) / 255.0;
+
+        if (t < 0.5) return mix(green, yellow, smoothstep(0.0, 0.5, t));
+        return mix(yellow, red, smoothstep(0.5, 1.0, t));
       }
-      
-      // Simple noise function for fog effect
+
+      float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+      }
+
       float noise(vec2 p) {
-        return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        float a = hash(i);
+        float b = hash(i + vec2(1.0, 0.0));
+        float c = hash(i + vec2(0.0, 1.0));
+        float d = hash(i + vec2(1.0, 1.0));
+        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
       }
-      
-      // Fog-like turbulence for organic movement
-      float fogTurbulence(vec2 p, float time) {
-        float value = 0.0;
-        float amplitude = 0.5;
-        float frequency = 1.0;
-        
-        for (int i = 0; i < 3; i++) {
-          value += amplitude * (sin(p.x * frequency + time) * cos(p.y * frequency * 1.3 + time * 0.7));
-          frequency *= 2.0;
-          amplitude *= 0.5;
-        }
-        
-        return value * 0.5 + 0.5;
+
+      float dither(vec2 uv) {
+        return fract(52.9829189 * fract(dot(uv, vec2(0.06711056, 0.00583715))));
       }
-      
-      vec4 shadowLayer(vec2 offset, float blurRadius, vec3 color, float alpha) {
-        vec2 pixelPos = v_uv * u_resolution;
-        vec2 scaledOffset = offset * u_devicePixelRatio;
-        
-        float modalLeft = u_modalPos.x;
-        float modalRight = u_modalPos.x + u_modalSize.x;
-        float modalBottom = u_modalPos.y + u_modalSize.y;
-        
-        // Apply horizontal offset - shadows shift left by offset.x
-        float offsetX = pixelPos.x - scaledOffset.x;
-        
-        // Calculate distance from modal bottom edge (with vertical offset)
-        float distY = pixelPos.y - modalBottom - scaledOffset.y;
-        
-        // Only render if we're below the modal
-        if (distY < 0.0) {
-          return vec4(0.0);
-        }
-        
-        // Calculate horizontal distance from closest point on modal bottom edge
-        // This allows shadow to extend horizontally with proper fade
-        float closestX = clamp(offsetX, modalLeft, modalRight);
-        float distX = abs(offsetX - closestX);
-        
-        // Calculate distance for circular blur - this creates smooth falloff in all directions
-        float dist = sqrt(distX * distX + distY * distY);
-        
-        // Extend horizontal blur range - allow shadow to extend much further horizontally
-        float effectiveBlurRadius = blurRadius * u_devicePixelRatio;
-        float horizontalExtension = effectiveBlurRadius * 3.0; // Very large horizontal extension
-        
-        // Apply blur with Gaussian falloff - use much stronger blur
-        float blurIntensity = smoothFalloff(dist, blurRadius);
-        
-        // Add fog animation - much more visible movement
-        vec2 fogCoord = pixelPos / 50.0; // Finer fog pattern for more detail
-        float fogFactor = fogTurbulence(fogCoord + vec2(u_time * 0.25, u_time * 0.3), u_time);
-        
-        // Very visible fog modulation - creates wispy, organic shadows
-        float fogModulation = 1.0 + (fogFactor - 0.5) * 0.5;
-        // Additional spatial variation for organic, animated look
-        float spatialFog = sin(pixelPos.x * 0.02 + u_time * 0.5) * cos(pixelPos.y * 0.015 + u_time * 0.4) * 0.2;
-        // Add a slower, larger wave for more noticeable movement
-        float slowWave = sin(pixelPos.x * 0.005 + u_time * 0.2) * cos(pixelPos.y * 0.004 + u_time * 0.15) * 0.1;
-        fogModulation += spatialFog + slowWave;
-        fogModulation = max(fogModulation, 0.4); // Ensure minimum visibility
-        
-        float intensity = blurIntensity * alpha * fogModulation;
-        
-        // Apply additional horizontal extension fade - allows shadow to extend much further
-        // This creates smooth horizontal edges instead of hard cutoffs
-        if (distX > 0.0) {
-          // Smoothly fade as we go further from modal edge
-          float horizontalFadeDistance = horizontalExtension;
-          float horizontalFade = 1.0 - smoothstep(0.0, horizontalFadeDistance, distX);
-          // Don't completely kill it, just reduce gradually
-          intensity *= mix(0.3, 1.0, horizontalFade);
-        }
-        
-        return vec4(color * intensity, intensity);
-      }
-      
+
       void main() {
-        vec4 color = vec4(0.0);
-        
-        // Debug: Check if we're in a valid area
         vec2 pixelPos = v_uv * u_resolution;
-        float modalBottom = u_modalPos.y + u_modalSize.y;
-        
-        // Only render if modal exists and we're below it
-        if (u_modalSize.x > 0.0 && u_modalSize.y > 0.0 && pixelPos.y >= modalBottom) {
-          // Multi-layer gradient shadow with fog animation
-          vec4 layer1 = shadowLayer(
-            vec2(-21.0, 202.75),
-            138.0,
-            vec3(228.0, 238.0, 151.0) / 255.0,
-            0.02
-          );
-          color += layer1;
-          
-          vec4 layer2 = shadowLayer(
-            vec2(-14.0, 166.5),
-            126.0,
-            vec3(229.0, 90.0, 90.0) / 255.0,
-            0.14
-          );
-          color += layer2;
-          
-          vec4 layer3 = shadowLayer(
-            vec2(-8.0, 88.25),
-            106.0,
-            vec3(74.0, 234.0, 146.0) / 255.0,
-            0.31
-          );
-          color += layer3;
-          
-          vec4 layer4 = shadowLayer(
-            vec2(-3.0, 19.75),
-            79.0,
-            vec3(100.0, 128.0, 236.0) / 255.0,
-            0.58
-          );
-          color += layer4;
-          
-          vec4 layer5 = shadowLayer(
-            vec2(-1.0, 10.0),
-            43.0,
-            vec3(107.0, 107.0, 107.0) / 255.0,
-            0.86
-          );
-          color += layer5;
+        if (u_modalSize.x <= 0.0) {
+          gl_FragColor = vec4(0.0);
+          return;
         }
+
+        vec2 modalCenter = u_modalPos + u_modalSize * 0.5;
+        vec2 p = pixelPos - modalCenter;
+        float modalDist = roundedBoxSDF(pixelPos, modalCenter, u_modalSize * 0.5, 16.0 * u_devicePixelRatio);
+
+        // --- Layer 1: Subtle Aura ---
+        float auraCore = exp(-max(0.0, modalDist) / (25.0 * u_devicePixelRatio));
+        float auraWide = exp(-max(0.0, modalDist) / (100.0 * u_devicePixelRatio)) * 0.4;
+        float aura = (auraCore + auraWide) * u_auraIntensity;
+        vec3 auraColor = vec3(120.0, 160.0, 200.0) / 255.0;
+
+        // --- Layer 2: Prismatic Bottom Leak ---
+        float bottomEdge = u_modalSize.y * 0.5;
+        float relativeY = p.y - (bottomEdge - u_verticalShift * u_devicePixelRatio); 
+
+        float bottomMask = smoothstep(-15.0 * u_devicePixelRatio, 10.0 * u_devicePixelRatio, relativeY);
+        // Horizontal mask: relaxed slightly to match or exceed modal width
+        float horizontalMask = smoothstep(u_modalSize.x * 0.58, u_modalSize.x * 0.48, abs(p.x));
         
-        gl_FragColor = color;
+        float leakCore = exp(-max(0.0, relativeY) / (80.0 * u_devicePixelRatio));
+        float leakWide = exp(-max(0.0, relativeY) / (u_leakWideReach * u_devicePixelRatio)) * 0.5;
+        float leakFalloff = leakCore + leakWide;
+        
+        // --- God Rays (Streaks that cut through everything) ---
+        // Subtle mouse tracking for the rays' origin
+        vec2 rayOrigin = modalCenter + (u_mouse - 0.5) * 30.0 * u_devicePixelRatio;
+        vec2 toRay = pixelPos - rayOrigin;
+        float rayAngle = atan(toRay.y, toRay.x);
+
+        float rays = 0.0;
+        // High-frequency noise streaks based on rayAngle
+        rays += pow(noise(vec2(rayAngle * 8.0, 0.0)), 4.0) * 0.6;
+        rays += pow(noise(vec2(rayAngle * 16.0, u_time * 0.02)), 5.0) * 0.4;
+        
+        // Apply intensity control
+        float rayMultiplier = mix(1.0, 1.0 + rays * 4.0, u_godRayIntensity);
+        
+        // Spectrum mapping (Green -> Yellow -> Red)
+        // Adding back the diffused jitter for extra softness
+        float diffusedY = relativeY + (noise(pixelPos * 0.02 + u_time * 0.05) - 0.5) * 10.0 * u_devicePixelRatio;
+        float spectrumT = clamp(diffusedY / (u_leakLength * u_devicePixelRatio), 0.0, 1.0);
+        vec3 leakColor = getPrismaticColor(spectrumT);
+        
+        // Combine the two layers
+        // Both layers now benefit from the God Ray streaks
+        vec3 finalColor = (auraColor * aura * 0.5 * rayMultiplier); 
+        finalColor += (leakColor * leakFalloff * bottomMask * horizontalMask * u_leakIntensity * rayMultiplier); 
+
+        // Apply God Ray influence to the alpha as well for more "depth" in the streaks
+        float finalAlpha = max(aura * mix(1.0, 1.2, rays * u_godRayIntensity), 
+                               leakFalloff * bottomMask * horizontalMask * u_leakOpacity * rayMultiplier);
+        finalAlpha = max(finalAlpha, (1.0 - smoothstep(0.0, 1.0, modalDist / 8.0)) * 0.85);
+
+        if (modalDist < 0.0) {
+          finalColor *= 0.0;
+          finalAlpha = 0.0;
+        }
+
+        float d = dither(pixelPos);
+        finalColor += (d - 0.5) / 255.0;
+
+        gl_FragColor = vec4(finalColor, finalAlpha);
       }
     `
 
@@ -244,56 +199,23 @@ export function useWebGLShadow({ isOpen, modalRef, canvasRef, overlayRef }) {
       return program
     }
 
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource)
-    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource)
-    const program = createProgram(gl, vertexShader, fragmentShader)
-
+    const vs = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource)
+    const fs = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource)
+    if (!vs || !fs) return
+    const program = createProgram(gl, vs, fs)
     if (!program) return
     programRef.current = program
 
-    // Create quad geometry
     const positionBuffer = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
-    const positions = [
-      -1, -1,
-       1, -1,
-      -1,  1,
-      -1,  1,
-       1, -1,
-       1,  1,
-    ]
+    const positions = [-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW)
     positionBufferRef.current = positionBuffer
 
     function resizeCanvas() {
-      const wrapper = canvas.parentElement
-      if (!wrapper) {
-        console.warn('WebGL Shadow: No wrapper element found')
-        return
-      }
-      
-      if (!modalRef.current) {
-        // Canvas should still have dimensions even if modal isn't ready
-        const wrapperRect = wrapper.getBoundingClientRect()
-        const width = wrapperRect.width || 600
-        const height = (wrapperRect.height || 400) + 300
-        
-        canvas.width = width * window.devicePixelRatio
-        canvas.height = height * window.devicePixelRatio
-        canvas.style.width = width + 'px'
-        canvas.style.height = height + 'px'
-        gl.viewport(0, 0, canvas.width, canvas.height)
-        return
-      }
-      
-      const rect = modalRef.current.getBoundingClientRect()
-      const wrapperRect = wrapper.getBoundingClientRect()
-      
-      const width = wrapperRect.width || 600
-      const height = (wrapperRect.height || 400) + 300
-      
-      // Ensure minimum dimensions
-      if (canvas.width !== width * window.devicePixelRatio || 
+      const width = window.innerWidth
+      const height = window.innerHeight
+      if (canvas.width !== width * window.devicePixelRatio ||
           canvas.height !== height * window.devicePixelRatio) {
         canvas.width = width * window.devicePixelRatio
         canvas.height = height * window.devicePixelRatio
@@ -308,90 +230,69 @@ export function useWebGLShadow({ isOpen, modalRef, canvasRef, overlayRef }) {
         if (canvas) canvas.style.opacity = '0'
         return
       }
-      
-      if (!modalRef.current || !canvas) {
-        console.warn('WebGL Shadow: Modal or canvas not available for render')
-        return
-      }
-      
+      if (!modalRef.current || !canvas) return
       resizeCanvas()
       canvas.style.opacity = '1'
-      
       const gl = glRef.current
       const program = programRef.current
-      if (!gl || !program) {
-        console.warn('WebGL Shadow: gl or program not available', { gl: !!gl, program: !!program })
-        return
-      }
-      
+      if (!gl || !program) return
       gl.useProgram(program)
       
-      const positionLocation = gl.getAttribLocation(program, 'a_position')
-      gl.enableVertexAttribArray(positionLocation)
+      const posLoc = gl.getAttribLocation(program, 'a_position')
+      gl.enableVertexAttribArray(posLoc)
       gl.bindBuffer(gl.ARRAY_BUFFER, positionBufferRef.current)
-      gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
+      gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0)
       
-      const resolutionLocation = gl.getUniformLocation(program, 'u_resolution')
-      const modalSizeLocation = gl.getUniformLocation(program, 'u_modalSize')
-      const modalPosLocation = gl.getUniformLocation(program, 'u_modalPos')
-      const devicePixelRatioLocation = gl.getUniformLocation(program, 'u_devicePixelRatio')
-      const timeLocation = gl.getUniformLocation(program, 'u_time')
-      
+      const resLoc = gl.getUniformLocation(program, 'u_resolution')
+      const sizeLoc = gl.getUniformLocation(program, 'u_modalSize')
+      const posLocU = gl.getUniformLocation(program, 'u_modalPos')
+      const mouseLoc = gl.getUniformLocation(program, 'u_mouse')
+      const dprLoc = gl.getUniformLocation(program, 'u_devicePixelRatio')
+      const timeLoc = gl.getUniformLocation(program, 'u_time')
+
+      // Controls
+      const intensityLoc = gl.getUniformLocation(program, 'u_leakIntensity')
+      const opacityLoc = gl.getUniformLocation(program, 'u_leakOpacity')
+      const lengthLoc = gl.getUniformLocation(program, 'u_leakLength')
+      const wideLoc = gl.getUniformLocation(program, 'u_leakWideReach')
+      const shiftLoc = gl.getUniformLocation(program, 'u_verticalShift')
+      const auraLoc = gl.getUniformLocation(program, 'u_auraIntensity')
+      const godRayLoc = gl.getUniformLocation(program, 'u_godRayIntensity')
+
       const rect = modalRef.current.getBoundingClientRect()
       const canvasRect = canvas.getBoundingClientRect()
-      
-      // Calculate positions in canvas pixel space
       const modalPosX = (rect.left - canvasRect.left) * window.devicePixelRatio
       const modalPosY = (rect.top - canvasRect.top) * window.devicePixelRatio
       const modalWidth = rect.width * window.devicePixelRatio
       const modalHeight = rect.height * window.devicePixelRatio
       
-      // Debug log first few renders
-      if (Math.random() < 0.01) {
-        console.log('WebGL Shadow Render:', {
-          canvasSize: { w: canvas.width, h: canvas.height },
-          modalPos: { x: modalPosX, y: modalPosY },
-          modalSize: { w: modalWidth, h: modalHeight },
-          canvasRect: { left: canvasRect.left, top: canvasRect.top },
-          modalRect: { left: rect.left, top: rect.top }
-        })
-      }
-      
-      gl.uniform2f(resolutionLocation, canvas.width, canvas.height)
-      gl.uniform2f(modalSizeLocation, modalWidth, modalHeight)
-      gl.uniform2f(modalPosLocation, modalPosX, modalPosY)
-      gl.uniform1f(devicePixelRatioLocation, window.devicePixelRatio || 1.0)
-      gl.uniform1f(timeLocation, Date.now() / 1000.0) // Time in seconds for animation
-      
+      gl.uniform2f(resLoc, canvas.width, canvas.height)
+      gl.uniform2f(sizeLoc, modalWidth, modalHeight)
+      gl.uniform2f(posLocU, modalPosX, modalPosY)
+      gl.uniform2f(mouseLoc, mousePosRef.current.x, mousePosRef.current.y)
+      gl.uniform1f(dprLoc, window.devicePixelRatio || 1.0)
+      gl.uniform1f(timeLoc, (Date.now() % 100000) / 1000.0)
+
+      // Apply controls
+      gl.uniform1f(intensityLoc, controls.leakIntensity ?? 0.5)
+      gl.uniform1f(opacityLoc, controls.leakOpacity ?? 0.5)
+      gl.uniform1f(lengthLoc, controls.leakLength ?? 160.0)
+      gl.uniform1f(wideLoc, controls.leakWideReach ?? 200.0)
+      gl.uniform1f(shiftLoc, controls.verticalShift ?? 10.0)
+      gl.uniform1f(auraLoc, controls.auraIntensity ?? 0.45)
+      gl.uniform1f(godRayLoc, controls.godRayIntensity ?? 0.0)
+
       gl.enable(gl.BLEND)
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-      
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
       gl.clearColor(0, 0, 0, 0)
       gl.clear(gl.COLOR_BUFFER_BIT)
       gl.drawArrays(gl.TRIANGLES, 0, 6)
-      
-      // Check for WebGL errors
-      const error = gl.getError()
-      if (error !== gl.NO_ERROR) {
-        const errorNames = {
-          0x0500: 'INVALID_ENUM',
-          0x0501: 'INVALID_VALUE',
-          0x0502: 'INVALID_OPERATION',
-          0x0503: 'INVALID_FRAMEBUFFER_OPERATION',
-          0x0504: 'OUT_OF_MEMORY',
-          0x0505: 'CONTEXT_LOST_WEBGL'
-        }
-        console.error('WebGL Shadow error:', errorNames[error] || error, error)
-      }
     }
 
     renderRef.current = render
     canvas.style.opacity = '0'
-    
-    // Initial canvas resize
     resizeCanvas()
 
-    // Initial render if modal is already open
     if (isOpen && modalRef.current && overlayRef.current) {
       setTimeout(() => {
         resizeCanvas()
@@ -399,78 +300,51 @@ export function useWebGLShadow({ isOpen, modalRef, canvasRef, overlayRef }) {
       }, 100)
     }
 
-    // Re-render on resize
-    let resizeTimeout
     const handleResize = () => {
-      clearTimeout(resizeTimeout)
-      resizeTimeout = setTimeout(render, 100)
+      setTimeout(render, 100)
     }
-
     window.addEventListener('resize', handleResize)
-
-    // Re-render when modal visibility changes
     const observer = new MutationObserver(() => {
       setTimeout(render, 100)
     })
-
     if (modalRef.current) {
       observer.observe(modalRef.current, { attributes: true, attributeFilter: ['style'] })
     }
-
     return () => {
       window.removeEventListener('resize', handleResize)
       observer.disconnect()
     }
-  }, [canvasRef, modalRef, overlayRef, isOpen])
+  }, [canvasRef, modalRef, overlayRef, isOpen, controls])
 
-  // Trigger render when isOpen changes
   useEffect(() => {
     if (isOpen && renderRef.current && modalRef?.current && overlayRef?.current) {
-      // Small delay to ensure DOM is ready
       const timeout = setTimeout(() => {
-        if (renderRef.current) {
-          renderRef.current()
-        }
+        if (renderRef.current) renderRef.current()
       }, 100)
       return () => clearTimeout(timeout)
     }
   }, [isOpen, modalRef, overlayRef])
 
-  // Animation loop for fog effect
   useEffect(() => {
     if (!isOpen || !renderRef.current) return
-    
     let animationFrameId
     let isRunning = true
-    
     function animate() {
       if (!isRunning) return
-      
-      // Always try to render if refs exist
       if (renderRef.current && overlayRef?.current && modalRef?.current && canvasRef?.current) {
         try {
           renderRef.current()
-        } catch (e) {
-          console.error('Render error:', e)
-        }
+        } catch (e) {}
       }
-      
       animationFrameId = requestAnimationFrame(animate)
     }
-    
-    // Small delay to ensure everything is mounted
     const timeout = setTimeout(() => {
-      if (isRunning) {
-        animationFrameId = requestAnimationFrame(animate)
-      }
+      if (isRunning) animationFrameId = requestAnimationFrame(animate)
     }, 50)
-    
     return () => {
       isRunning = false
       clearTimeout(timeout)
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId)
-      }
+      if (animationFrameId) cancelAnimationFrame(animationFrameId)
     }
   }, [isOpen, overlayRef, modalRef, canvasRef])
 }

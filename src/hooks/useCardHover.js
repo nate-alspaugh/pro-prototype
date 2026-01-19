@@ -24,12 +24,12 @@ export function useCardHover(cardRef) {
       if (originalTransform) {
         const scaleMatch = originalTransform.match(/scale\([^)]+\)/)
         if (scaleMatch) {
-          card.style.transform = originalTransform.replace(/scale\([^)]+\)/, 'scale(1.05)')
+          card.style.transform = originalTransform.replace(/scale\([^)]+\)/, 'scale(1.01)')
         } else {
-          card.style.transform = `${originalTransform} scale(1.05)`
+          card.style.transform = `${originalTransform} scale(1.01)`
         }
       } else {
-        card.style.transform = 'scale(1.05)'
+        card.style.transform = 'scale(1.01)'
       }
     }
 

@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import anime from 'animejs'
 
 export function useCommandPalette({ isOpen, onClose, selectedIndex, setSelectedIndex, inputRef, overlayRef, modalRef, onSelect, itemsCount = 3 }) {
   useEffect(() => {
@@ -16,18 +15,7 @@ export function useCommandPalette({ isOpen, onClose, selectedIndex, setSelectedI
         setSelectedIndex((prev) => (prev - 1 + itemsCount) % itemsCount)
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        const item = modalRef.current?.querySelectorAll('.cp-item')[selectedIndex]
-        if (item) {
-          anime({ 
-            targets: item, 
-            scale: [1, 0.98, 1], 
-            duration: 200, 
-            easing: 'easeInOutQuad',
-            complete: () => {
-              if (onSelect) onSelect(selectedIndex)
-            }
-          })
-        }
+        if (onSelect) onSelect(selectedIndex)
       }
     }
 
@@ -36,55 +24,17 @@ export function useCommandPalette({ isOpen, onClose, selectedIndex, setSelectedI
   }, [isOpen, onClose, selectedIndex, setSelectedIndex, modalRef, onSelect, itemsCount])
 
   useEffect(() => {
-    if (!isOpen || !overlayRef.current || !modalRef.current) return
+    if (!isOpen || !inputRef.current) return
 
-    const overlay = overlayRef.current
-    const modal = modalRef.current
-
-    // Show overlay
-    overlay.style.display = 'flex'
-
-    // Animate in
-    anime({
-      targets: overlay,
-      opacity: [0, 1],
-      duration: 200,
-      easing: 'easeOutQuad'
-    })
-
-    anime({
-      targets: modal,
-      translateY: [-20, 0],
-      opacity: [0, 1],
-      duration: 300,
-      easing: 'easeOutExpo',
-      delay: 50,
-      complete: () => {
-        if (inputRef.current) {
-          inputRef.current.focus()
-        }
+    // Focus input after animation completes
+    const focusTimer = setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus()
       }
-    })
+    }, 350)
 
     return () => {
-      // Animate out
-      anime({
-        targets: overlay,
-        opacity: [1, 0],
-        duration: 200,
-        easing: 'easeInQuad'
-      })
-
-      anime({
-        targets: modal,
-        translateY: [0, -20],
-        opacity: [1, 0],
-        duration: 200,
-        easing: 'easeInExpo',
-        complete: () => {
-          overlay.style.display = 'none'
-        }
-      })
+      clearTimeout(focusTimer)
     }
-  }, [isOpen, overlayRef, modalRef, inputRef])
+  }, [isOpen, inputRef])
 }

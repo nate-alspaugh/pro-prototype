@@ -15,8 +15,8 @@ function NavTabs() {
   const tabRefs = useRef([])
 
   useEffect(() => {
-    const tabs = tabRefs.current
-    tabs.forEach(tab => {
+    const tabElements = tabRefs.current
+    tabElements.forEach(tab => {
       if (!tab) return
       
       const handleMouseMove = (e) => {

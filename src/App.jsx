@@ -9,7 +9,14 @@ import './styles.css'
 
 function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
-  const [currentView, setCurrentView] = useState('dashboard') // 'dashboard' or 'catalogue'
+  const [currentView, setCurrentView] = useState(() => {
+    return localStorage.getItem('pro-prototype-view') || 'dashboard'
+  })
+
+  // Persist view to localStorage
+  useEffect(() => {
+    localStorage.setItem('pro-prototype-view', currentView)
+  }, [currentView])
 
   // Initialize animations on mount
   useAnimeAnimations()
@@ -39,6 +46,7 @@ function App() {
             onNavigate={(id) => setCurrentView(id ? `catalogue:${id}` : 'catalogue')}
           />
         )}
+        <div className="scroll-spacer" />
       </main>
       <CommandPalette 
         isOpen={isCommandPaletteOpen} 

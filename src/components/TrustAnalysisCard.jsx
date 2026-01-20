@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { motion } from 'framer-motion'
 import { useCardHover } from '../hooks/useCardHover'
 
 const firms = [
@@ -19,11 +20,20 @@ function TrustAnalysisCard() {
         <h2>Trust analysis</h2>
       </div>
       <div className="card-body trust-list">
-        {firms.map((firm) => (
+        {firms.map((firm, index) => (
           <div key={firm.name} className="trust-row">
             <div className="firm-label">{firm.name}</div>
             <div className="bar-track">
-              <div className={`bar-fill ${firm.color}`} style={{ width: `${firm.width}%` }}></div>
+              <motion.div 
+                className={`bar-fill ${firm.color}`}
+                initial={{ width: '0%' }}
+                animate={{ width: `${firm.width}%` }}
+                transition={{
+                  duration: 1.5,
+                  delay: index * 0.1,
+                  ease: [0.16, 1, 0.3, 1] // easeOutExpo approximation
+                }}
+              />
             </div>
           </div>
         ))}

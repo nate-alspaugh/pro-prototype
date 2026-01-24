@@ -1,0 +1,75 @@
+# Component Template
+
+Use this template when creating new components.
+
+**File location:** `src/components/[kebab-name]/[Name].tsx`
+**Index file:** `src/components/[kebab-name]/index.ts` with `export { default } from './[Name]'`
+
+```typescript
+import { cn } from '@/utils/cn'
+import { ReactNode } from 'react'
+
+/**
+ * @component {{NAME}}
+ * @purpose {{PURPOSE_WHAT}}
+ * @where {{PURPOSE_WHERE}}
+ * @not-for {{PURPOSE_NOT_FOR}}
+ *
+ * {{#each VARIANTS}}
+ * @variant {{axis}} - {{options}} - {{description}}
+ * {{/each}}
+ *
+ * @uses {{USES}}
+ * @related {{RELATED}}
+ */
+
+interface {{NAME}}Props {
+  children?: ReactNode
+  {{#each VARIANTS}}
+  {{axis}}?: {{optionsType}}
+  {{/each}}
+  className?: string
+}
+
+{{#each VARIANTS}}
+const {{axis}}Classes = {
+  {{#each options}}
+  {{this}}: '{{classes}}',
+  {{/each}}
+}
+{{/each}}
+
+export default function {{NAME}}({
+  children,
+  {{#each VARIANTS}}
+  {{axis}} = '{{default}}',
+  {{/each}}
+  className
+}: {{NAME}}Props) {
+  return (
+    <div
+      className={cn(
+        'base-classes-here',
+        {{#each VARIANTS}}
+        {{axis}}Classes[{{axis}}],
+        {{/each}}
+        className
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+```
+
+## Placeholder Values
+
+| Placeholder | Description |
+|-------------|-------------|
+| `{{NAME}}` | PascalCase component name |
+| `{{PURPOSE_WHAT}}` | What the component does |
+| `{{PURPOSE_WHERE}}` | Usage contexts |
+| `{{PURPOSE_NOT_FOR}}` | What not to use it for |
+| `{{VARIANTS}}` | Array of variant definitions |
+| `{{USES}}` | Components this uses |
+| `{{RELATED}}` | Related components |

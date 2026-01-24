@@ -1,0 +1,58 @@
+# Registry Entry Template
+
+Add this entry to `src/components/registry.ts`.
+
+```typescript
+{
+  id: '{{ID}}',
+  name: '{{NAME}}',
+  category: '{{CATEGORY}}',
+  path: '@/components/{{ID}}',  // Flat structure: each component has its own folder
+  purpose: {
+    what: '{{PURPOSE_WHAT}}',
+    where: '{{PURPOSE_WHERE}}',
+    notFor: '{{PURPOSE_NOT_FOR}}'
+  },
+  variants: {
+    {{#each VARIANTS}}
+    {{axis}}: { options: [{{optionsArray}}], default: '{{default}}' },
+    {{/each}}
+  },
+  composition: {
+    uses: [{{USES}}],
+    usedBy: []
+  },
+  related: [{{RELATED}}],
+  guidelines: '{{GUIDELINES}}'
+}
+```
+
+## Placeholder Values
+
+| Placeholder | Description | Example |
+|-------------|-------------|---------|
+| `{{ID}}` | kebab-case identifier | `'summary-card'` |
+| `{{NAME}}` | PascalCase component name | `'SummaryCard'` |
+| `{{CATEGORY}}` | Component category | `'cards'`, `'ui'`, `'layout'` |
+| `{{PURPOSE_WHAT}}` | What it does | `'Display key metrics in a compact format'` |
+| `{{PURPOSE_WHERE}}` | Usage contexts | `'Dashboards, overview sections'` |
+| `{{PURPOSE_NOT_FOR}}` | What not to use for | `'Detailed data (use DataTable)'` |
+| `{{VARIANTS}}` | Variant axis definitions | See below |
+| `{{USES}}` | Components this uses | `'Card', 'Icon'` |
+| `{{RELATED}}` | Similar components | `'Card', 'KpiLayout'` |
+| `{{GUIDELINES}}` | Usage notes | `'Use for 1-3 key metrics'` |
+
+## Variant Format
+
+```typescript
+variants: {
+  size: { options: ['sm', 'md', 'lg'], default: 'md' },
+  variant: { options: ['default', 'highlighted'], default: 'default' }
+}
+```
+
+## After Adding Entry
+
+1. Update `usedBy` arrays for any components listed in `uses`
+2. Verify TypeScript compiles without errors
+3. Check ComponentLibrary displays the new entry

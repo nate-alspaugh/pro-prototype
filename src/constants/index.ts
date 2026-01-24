@@ -9,8 +9,7 @@ export const ANIMATION_DURATION = {
 
 // Local storage keys
 export const STORAGE_KEYS = {
-  VIEW: 'pro-prototype-view',
-  COMPONENT_DESCRIPTIONS: 'pro-prototype-component-descriptions'
+  VIEW: 'pro-prototype-view'
 } as const
 
 // Command palette keyboard shortcuts

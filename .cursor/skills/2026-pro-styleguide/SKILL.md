@@ -15,7 +15,8 @@ description: Our design constraints for Pro
 ## Components
 
 - **General Accessibility:**
-  - MUST use accessible component primitives for anything with keyboard or focus behavior (`Base UI`, `React Aria`).
+  - MUST check `@base-ui/react` first for any interactive component (inputs, dialogs, menus, etc.).
+  - MUST wrap Base UI primitives with our glass styles - never rebuild from scratch.
   - MUST add an `aria-label` to icon-only buttons.
   - NEVER rebuild keyboard or focus behavior by hand unless explicitly requested.
 
@@ -100,8 +101,19 @@ description: Our design constraints for Pro
   - `surface-2`: White 2.5%.
   - `card-bg-0`: surface-1 + blur(200).
   - `card-bg-1`: surface-2 + blur(200).
-  - `card-border`: Linear Gradient (45deg, White 10% -> White 5%).
   - `txt-primary` (White 90%), `txt-secondary` (White 60%), `txt-tertiary` (White 40%).
+
+- **Border Tokens (MUST USE):**
+  - Base tokens:
+    - `border-default`: White 10% - Standard solid borders.
+    - `border-subtle`: White 5% - Subtle/secondary borders.
+    - `border-glass`: Linear Gradient (45deg, White 10% -> White 5%) - Glass element borders.
+  - Semantic aliases (reference base tokens):
+    - `card-border`: → `border-glass` - Card gradient borders.
+    - `input-border`: → `border-glass` - Input gradient borders.
+    - `input-border-focus`: → `accent-blue` - Input focus state.
+    - `input-border-error`: → `accent-red` - Input error state.
+  - NEVER use surface tokens for borders.
 
 - **Card Hierarchy:**
   - MUST use `card-bg-0` for Parent/Base layers.

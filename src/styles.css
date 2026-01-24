@@ -1,90 +1,193 @@
 @import "tailwindcss";
 
 @theme {
-  --color-surface-0: #0C0D0D;
-  --color-surface-1: rgba(255, 255, 255, 0.05);
-  --color-surface-2: rgba(255, 255, 255, 0.025);
+  /* ===========================================
+   * DESIGN TOKENS - Tailwind v4 Theme
+   * Each token includes its purpose for design system governance.
+   * =========================================== */
 
-  /* Accent colors from Tailwind default palette */
-  --color-accent-green: #10b981; /* emerald-500 */
-  --color-accent-blue: #2563eb;  /* blue-600 */
-  --color-accent-red: #ef4444;   /* red-500 */
-  --color-accent-yellow: #facc15; /* yellow-400 */
+  /* --- Surface Tokens ---
+   * Background layers for visual depth hierarchy.
+   * Use surface-0 as base, surface-1/2 for elevation.
+   */
+  --color-surface-0: #0C0D0D;                    /* Base canvas - page backgrounds, app shell */
+  --color-surface-1: rgba(255, 255, 255, 0.05);  /* Elevated surface - cards, modals, dropdowns */
+  --color-surface-2: rgba(255, 255, 255, 0.025); /* Subtle elevation - nested cards, hover states */
 
-  --color-txt-primary: rgba(255, 255, 255, 0.9);
-  --color-txt-secondary: rgba(255, 255, 255, 0.6);
-  --color-txt-tertiary: rgba(255, 255, 255, 0.4);
+  /* --- Accent Tokens ---
+   * Semantic colors for status, feedback, and emphasis.
+   * Sourced from Tailwind default palette for consistency.
+   */
+  --color-accent-green: #10b981;  /* emerald-500 - Success states, positive trends, confirmations */
+  --color-accent-blue: #2563eb;   /* blue-600 - Primary actions, links, information */
+  --color-accent-red: #ef4444;    /* red-500 - Errors, destructive actions, negative trends */
+  --color-accent-yellow: #facc15; /* yellow-400 - Warnings, caution states, pending items */
 
-  --font-ui: 'General Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* --- Text Tokens ---
+   * Typography color hierarchy for readability.
+   * Primary for main content, secondary for supporting, tertiary for subtle.
+   */
+  --color-txt-primary: rgba(255, 255, 255, 0.9);   /* Main content - headings, body text, labels */
+  --color-txt-secondary: rgba(255, 255, 255, 0.6); /* Supporting content - descriptions, metadata */
+  --color-txt-tertiary: rgba(255, 255, 255, 0.4);  /* Subtle content - placeholders, disabled text */
 
-  --font-weight-book: 450;
-  --font-weight-semi: 530;
-  --font-weight-bold: 700;
+  /* --- Typography Tokens ---
+   * Font families and weights for consistent type treatment.
+   */
+  --font-ui: 'General Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; /* UI text - all interface elements */
+  --font-mono: 'JetBrains Mono', monospace; /* Data text - numbers, IDs, code */
+
+  --font-weight-book: 450;  /* Default weight - body text, descriptions */
+  --font-weight-semi: 530;  /* Emphasis weight - headings, labels */
+  --font-weight-bold: 700;  /* Strong weight - mono labels, key metrics */
+
+  /* --- Spacing Tokens ---
+   * Consistent spacing scale based on 4px grid.
+   * Use these instead of arbitrary values.
+   */
+  --spacing-2xs: 2px;  /* Minimal - icon padding, tight inline gaps */
+  --spacing-xs: 4px;   /* Compact - dense lists, small element gaps */
+  --spacing-sm: 8px;   /* Small - related element spacing, tight padding */
+  --spacing-md: 16px;  /* Standard - card padding, section gaps */
+  --spacing-lg: 24px;  /* Generous - major section breaks */
+  --spacing-xl: 32px;  /* Large - page-level separation */
+  --spacing-2xl: 40px; /* Extra large - hero sections, major landmarks */
+
+  /* --- Border Radius Tokens ---
+   * Consistent corner rounding for UI elements.
+   */
+  --radius-xs: 2px;    /* Subtle - small badges, tags */
+  --radius-sm: 4px;    /* Small - chips, small buttons */
+  --radius-md: 8px;    /* Standard - cards, buttons, inputs */
+  --radius-lg: 12px;   /* Large - modals, large cards */
+  --radius-xl: 16px;   /* Extra large - hero cards, feature sections */
+  --radius-full: 9999px; /* Pill - avatars, circular buttons */
 }
 
-/* --- Variables & Reset --- */
+/* ===========================================
+ * CSS CUSTOM PROPERTIES (Legacy Support)
+ * Mirrors @theme tokens for non-Tailwind usage.
+ * =========================================== */
 :root {
-    --font-ui: 'General Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+    /* --- Typography ---
+     * Font families and weights for consistent type treatment.
+     */
+    --font-ui: 'General Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; /* UI text */
+    --font-mono: 'JetBrains Mono', monospace; /* Data text - numbers, IDs, code */
 
-    --weight-book: 450;
-    --weight-semi: 530;
-    --weight-bold: 700;
+    --weight-book: 450;  /* Default weight - body text, descriptions */
+    --weight-semi: 530;  /* Emphasis weight - headings, labels */
+    --weight-bold: 700;  /* Strong weight - mono labels, key metrics */
 
-    --surface-0: #0C0D0D;
-    --surface-1: rgba(255, 255, 255, 0.05);
-    --surface-2: rgba(255, 255, 255, 0.025);
+    /* --- Surface Tokens ---
+     * Background layers for visual depth hierarchy.
+     */
+    --surface-0: #0C0D0D;                    /* Base canvas - page backgrounds */
+    --surface-1: rgba(255, 255, 255, 0.05);  /* Elevated surface - cards, modals */
+    --surface-2: rgba(255, 255, 255, 0.025); /* Subtle elevation - nested cards */
 
-    /* White Alpha Steps */
-    --white-100: rgba(255, 255, 255, 1);
-    --white-90: rgba(255, 255, 255, 0.9);
-    --white-80: rgba(255, 255, 255, 0.8);
-    --white-70: rgba(255, 255, 255, 0.7);
-    --white-60: rgba(255, 255, 255, 0.6);
-    --white-50: rgba(255, 255, 255, 0.5);
-    --white-40: rgba(255, 255, 255, 0.4);
-    --white-30: rgba(255, 255, 255, 0.3);
-    --white-25: rgba(255, 255, 255, 0.25);
-    --white-20: rgba(255, 255, 255, 0.2);
-    --white-15: rgba(255, 255, 255, 0.15);
-    --white-12: rgba(255, 255, 255, 0.12);
-    --white-10: rgba(255, 255, 255, 0.1);
-    --white-5: rgba(255, 255, 255, 0.05);
-    --white-2-5: rgba(255, 255, 255, 0.025);
-    --white-0: rgba(255, 255, 255, 0);
+    /* --- Alpha Scales ---
+     * Opacity steps for overlays, borders, and transparency effects.
+     * Use sparingly - prefer semantic tokens when possible.
+     */
 
-    /* Black Alpha Steps */
-    --black-100: rgba(0, 0, 0, 1);
-    --black-90: rgba(0, 0, 0, 0.9);
-    --black-80: rgba(0, 0, 0, 0.8);
-    --black-70: rgba(0, 0, 0, 0.7);
-    --black-60: rgba(0, 0, 0, 0.6);
-    --black-50: rgba(0, 0, 0, 0.5);
-    --black-40: rgba(0, 0, 0, 0.4);
-    --black-30: rgba(0, 0, 0, 0.3);
-    --black-20: rgba(0, 0, 0, 0.2);
-    --black-10: rgba(0, 0, 0, 0.1);
-    --black-5: rgba(0, 0, 0, 0.05);
-    --black-2-5: rgba(0, 0, 0, 0.025);
-    --black-0: rgba(0, 0, 0, 0);
+    /* White Alpha - Light overlays, glassmorphism, borders on dark */
+    --white-100: rgba(255, 255, 255, 1);    /* Solid white - rare, high contrast */
+    --white-90: rgba(255, 255, 255, 0.9);   /* Primary text on dark backgrounds */
+    --white-80: rgba(255, 255, 255, 0.8);   /* Button fills, high emphasis */
+    --white-70: rgba(255, 255, 255, 0.7);   /* Button gradient ends */
+    --white-60: rgba(255, 255, 255, 0.6);   /* Secondary text on dark */
+    --white-50: rgba(255, 255, 255, 0.5);   /* Medium emphasis overlays */
+    --white-40: rgba(255, 255, 255, 0.4);   /* Tertiary text, disabled states */
+    --white-30: rgba(255, 255, 255, 0.3);   /* Subtle borders, dividers */
+    --white-25: rgba(255, 255, 255, 0.25);  /* Light borders */
+    --white-20: rgba(255, 255, 255, 0.2);   /* Subtle overlays */
+    --white-15: rgba(255, 255, 255, 0.15);  /* Very subtle overlays */
+    --white-12: rgba(255, 255, 255, 0.12);  /* Hover states */
+    --white-10: rgba(255, 255, 255, 0.1);   /* Border gradients start */
+    --white-5: rgba(255, 255, 255, 0.05);   /* Surface-1, subtle elevation */
+    --white-2-5: rgba(255, 255, 255, 0.025);/* Surface-2, minimal elevation */
+    --white-0: rgba(255, 255, 255, 0);      /* Transparent endpoint */
 
-    --card-bg-0: var(--white-5); /* surface-1 equivalent */
-    --card-bg-1: var(--white-2-5); /* surface-2 equivalent */
-    --card-border: linear-gradient(45deg, var(--white-10), var(--white-5));
+    /* Black Alpha - Shadows, depth, text on light */
+    --black-100: rgba(0, 0, 0, 1);    /* Solid black - rare */
+    --black-90: rgba(0, 0, 0, 0.9);   /* Primary text on light backgrounds */
+    --black-80: rgba(0, 0, 0, 0.8);   /* High emphasis shadows */
+    --black-70: rgba(0, 0, 0, 0.7);   /* Strong shadows */
+    --black-60: rgba(0, 0, 0, 0.6);   /* Secondary text on light */
+    --black-50: rgba(0, 0, 0, 0.5);   /* Medium shadows */
+    --black-40: rgba(0, 0, 0, 0.4);   /* Tertiary elements */
+    --black-30: rgba(0, 0, 0, 0.3);   /* Inner shadows, depth effects */
+    --black-20: rgba(0, 0, 0, 0.2);   /* Subtle shadows */
+    --black-10: rgba(0, 0, 0, 0.1);   /* Very subtle shadows */
+    --black-5: rgba(0, 0, 0, 0.05);   /* Minimal shadow */
+    --black-2-5: rgba(0, 0, 0, 0.025);/* Near-invisible depth */
+    --black-0: rgba(0, 0, 0, 0);      /* Transparent endpoint */
 
-    --txt-primary: var(--white-90);
-    --txt-secondary: var(--white-60);
-    --txt-tertiary: var(--white-40);
-    
-    /* Accent colors from Tailwind default palette */
-    --accent-green: #10b981;  /* emerald-500 */
-    --accent-blue: #2563eb;   /* blue-600 */
-    --accent-red: #ef4444;    /* red-500 */
-    --accent-yellow: #facc15; /* yellow-400 */
-    
-    --glow-green-start: rgba(16, 185, 129, 0.15); /* emerald-500 @ 15% */
-    --glow-red-start: rgba(239, 68, 68, 0.15);    /* red-500 @ 15% */
+    /* --- Border Tokens ---
+     * Base border styles for consistent edge treatment.
+     * Use semantic aliases below for specific contexts.
+     */
+    --border-default: var(--white-10);      /* Standard solid border - dividers, containers */
+    --border-subtle: var(--white-5);        /* Subtle border - secondary elements, hover states */
+    --border-glass: linear-gradient(45deg, var(--white-10), var(--white-5)); /* Gradient border - glass elements */
+
+    /* --- Card Tokens ---
+     * Specific tokens for card components with glassmorphism.
+     */
+    --card-bg-0: var(--white-5);     /* Parent/base card background */
+    --card-bg-1: var(--white-2-5);   /* Nested card background */
+    --card-border: var(--border-glass); /* Card gradient border - references base token */
+
+    /* --- Input Tokens ---
+     * Specific tokens for form inputs with glassmorphism.
+     */
+    --input-bg: var(--white-2-5);           /* Input background - glass effect */
+    --input-border: var(--border-glass);    /* Input gradient border - references base token */
+    --input-border-focus: var(--accent-blue);  /* Focus state border */
+    --input-border-error: var(--accent-red);   /* Error state border */
+
+    /* --- Text Tokens ---
+     * Typography color hierarchy for readability.
+     */
+    --txt-primary: var(--white-90);   /* Main content - headings, body */
+    --txt-secondary: var(--white-60); /* Supporting - descriptions, metadata */
+    --txt-tertiary: var(--white-40);  /* Subtle - placeholders, disabled */
+
+    /* --- Accent Tokens ---
+     * Semantic colors for status and feedback.
+     */
+    --accent-green: #10b981;  /* emerald-500 - Success, positive trends */
+    --accent-blue: #2563eb;   /* blue-600 - Primary actions, links */
+    --accent-red: #ef4444;    /* red-500 - Errors, destructive, negative */
+    --accent-yellow: #facc15; /* yellow-400 - Warnings, caution */
+
+    /* --- Glow Tokens ---
+     * Subtle glow effects for charts and emphasis.
+     */
+    --glow-green-start: rgba(16, 185, 129, 0.15); /* Positive trend glow */
+    --glow-red-start: rgba(239, 68, 68, 0.15);    /* Negative trend glow */
+
+    /* --- Spacing Tokens ---
+     * Consistent spacing scale based on 4px grid.
+     */
+    --spacing-2xs: 2px;  /* Minimal - icon padding */
+    --spacing-xs: 4px;   /* Compact - dense lists */
+    --spacing-sm: 8px;   /* Small - related elements */
+    --spacing-md: 16px;  /* Standard - card padding */
+    --spacing-lg: 24px;  /* Generous - section breaks */
+    --spacing-xl: 32px;  /* Large - page separation */
+    --spacing-2xl: 40px; /* Extra large - hero sections */
+
+    /* --- Border Radius Tokens ---
+     * Consistent corner rounding.
+     */
+    --radius-xs: 2px;      /* Subtle - small badges */
+    --radius-sm: 4px;      /* Small - chips, small buttons */
+    --radius-md: 8px;      /* Standard - cards, buttons */
+    --radius-lg: 12px;     /* Large - modals */
+    --radius-xl: 16px;     /* Extra large - hero cards */
+    --radius-full: 9999px; /* Pill - avatars, circular */
   }
   
   * { box-sizing: border-box; }
@@ -237,6 +340,89 @@
 
   .btn-primary:active, .btn-secondary:active {
     transform: scale(0.98);
+  }
+
+  /* --- TEXT FIELD --- */
+  .text-field-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .text-field-label {
+    font-size: 12px;
+    font-weight: var(--weight-semi);
+    color: var(--txt-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .text-field-container {
+    position: relative;
+    width: 100%;
+  }
+
+  .text-field {
+    width: 100%;
+    background: var(--input-bg);
+    -webkit-backdrop-filter: blur(200px);
+    backdrop-filter: blur(200px);
+    border: none;
+    border-radius: 8px;
+    color: var(--txt-primary);
+    font-family: var(--font-ui);
+    outline: none;
+    transition: all 0.15s ease;
+  }
+
+  .text-field::placeholder {
+    color: var(--txt-tertiary);
+  }
+
+  /* Gradient border overlay */
+  .text-field-border {
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    padding: 1px;
+    background: var(--input-border);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    transition: background 0.15s ease;
+  }
+
+  /* Focus state */
+  .text-field-default .text-field:focus ~ .text-field-border {
+    background: var(--input-border-focus);
+  }
+
+  /* Error state */
+  .text-field-error .text-field-border {
+    background: var(--input-border-error);
+  }
+
+  /* Disabled state */
+  .text-field-disabled .text-field {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .text-field-disabled .text-field-border {
+    opacity: 0.5;
+  }
+
+  /* Helper text */
+  .text-field-helper {
+    font-size: 12px;
+    color: var(--txt-tertiary);
+  }
+
+  .text-field-helper-error {
+    color: var(--accent-red);
   }
 
   /* --- GENERAL AREA CONTAINER --- */
@@ -1159,6 +1345,109 @@
   .btn-reset:hover {
     color: var(--accent-red);
     border-color: var(--accent-red);
+  }
+
+  /* Registry Metadata Styles */
+  .registry-meta-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .meta-label {
+    font-size: 11px;
+    font-weight: var(--weight-semi);
+    color: var(--txt-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .meta-value {
+    font-size: 13px;
+    color: var(--txt-secondary);
+    line-height: 1.4;
+  }
+
+  .meta-default {
+    color: var(--txt-tertiary);
+    font-size: 12px;
+  }
+
+  .meta-not-for {
+    color: var(--txt-tertiary);
+    font-style: italic;
+  }
+
+  .meta-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    align-items: center;
+  }
+
+  .meta-link {
+    background: none;
+    border: none;
+    color: var(--accent-blue);
+    font-size: 13px;
+    font-family: var(--font-ui);
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 0.2s ease;
+  }
+
+  .meta-link:hover {
+    text-decoration-color: var(--accent-blue);
+  }
+
+  .prop-guidelines {
+    color: var(--txt-secondary);
+    font-style: italic;
+    background: var(--surface-2);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 3px solid var(--accent-blue);
+    margin-top: 8px;
+  }
+
+  /* Purpose editing styles */
+  .purpose-edit-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .purpose-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .purpose-edit-field .meta-label {
+    margin-bottom: 2px;
+  }
+
+  .purpose-edit-field .description-textarea {
+    min-height: 60px;
+  }
+
+  .save-error {
+    color: var(--accent-red);
+    font-size: 12px;
+    padding: 8px 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
   }
 
   .no-props {
